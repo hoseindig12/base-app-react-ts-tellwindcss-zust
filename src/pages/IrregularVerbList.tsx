@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, type MouseEvent } from "react";
+﻿import { useState, useEffect } from "react";
 import { IRREGULAR_VERBS } from "../data/irregularVerbs";
 
 const STORAGE_KEY = "selectedVerbs";
@@ -13,7 +13,7 @@ export default function IrregularVerbList() {
     "all" | "selected" | "forgotten"
   >("all");
 
-  // Ø¨Ø§Ø±Ú¯Ø°Ø§Ø±ÛŒ Ø¯Ø§Ø¯Ù‡â€ŒÙ‡Ø§ÛŒ Ø°Ø®ÛŒØ±Ù‡ Ø´Ø¯Ù‡ Ù‡Ù†Ú¯Ø§Ù… Ø¨Ø§Ø±Ú¯ÛŒØ±ÛŒ ØµÙØ­Ù‡
+  // بارگذاری داده‌های ذخیره شده هنگام بارگیری صفحه
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
@@ -34,18 +34,28 @@ export default function IrregularVerbList() {
     }
   }, []);
 
-  // Ø°Ø®ÛŒØ±Ù‡ Ø§Ù†ØªØ®Ø§Ø¨â€ŒÙ‡Ø§ Ø¯Ø± localStorage
-  const handleRowClick = (verbBase: string) => {
+  const setVerbStatus = (
+    verbBase: string,
+    status: "selected" | "forgotten" | "none",
+  ) => {
     setSelectedVerbs((prev) => {
-      const updated = prev.includes(verbBase)
-        ? prev.filter((v) => v !== verbBase)
-        : [...prev, verbBase];
+      const hasVerb = prev.includes(verbBase);
+      let updated = prev;
+      if (status === "selected" && !hasVerb) updated = [...prev, verbBase];
+      if (status !== "selected" && hasVerb) {
+        updated = prev.filter((v) => v !== verbBase);
+      }
       localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
       return updated;
     });
+
     setForgottenVerbs((prev) => {
-      if (!prev.includes(verbBase)) return prev;
-      const updated = prev.filter((v) => v !== verbBase);
+      const hasVerb = prev.includes(verbBase);
+      let updated = prev;
+      if (status === "forgotten" && !hasVerb) updated = [...prev, verbBase];
+      if (status !== "forgotten" && hasVerb) {
+        updated = prev.filter((v) => v !== verbBase);
+      }
       localStorage.setItem(FORGOTTEN_STORAGE_KEY, JSON.stringify(updated));
       return updated;
     });
@@ -53,26 +63,6 @@ export default function IrregularVerbList() {
 
   const isSelected = (verbBase: string) => selectedVerbs.includes(verbBase);
   const isForgotten = (verbBase: string) => forgottenVerbs.includes(verbBase);
-
-  const handleRowRightClick = (
-    event: MouseEvent<HTMLTableRowElement>,
-    verbBase: string,
-  ) => {
-    event.preventDefault();
-    setForgottenVerbs((prev) => {
-      const updated = prev.includes(verbBase)
-        ? prev.filter((v) => v !== verbBase)
-        : [...prev, verbBase];
-      localStorage.setItem(FORGOTTEN_STORAGE_KEY, JSON.stringify(updated));
-      return updated;
-    });
-    setSelectedVerbs((prev) => {
-      if (!prev.includes(verbBase)) return prev;
-      const updated = prev.filter((v) => v !== verbBase);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-      return updated;
-    });
-  };
 
   const clearAllSelections = () => {
     setSelectedVerbs([]);
@@ -83,7 +73,7 @@ export default function IrregularVerbList() {
 
   const handleSpeak = (text: string) => {
     if ("speechSynthesis" in window) {
-      window.speechSynthesis.cancel(); // Ù…ØªÙˆÙ‚Ù Ú©Ø±Ø¯Ù† ØµØ¯Ø§ÛŒ Ù‚Ø¨Ù„ÛŒ
+      window.speechSynthesis.cancel(); // متوقف کردن صدای قبلی
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = "en-US";
       utterance.rate = 0.8;
@@ -162,6 +152,7 @@ export default function IrregularVerbList() {
             <th className="border p-2 text-left">Base</th>
             <th className="border p-2 text-left">Past</th>
             <th className="border p-2 text-left">Past Participle</th>
+            <th className="border p-2 text-center w-48">وضعیت</th>
           </tr>
         </thead>
         <tbody>
@@ -185,24 +176,19 @@ export default function IrregularVerbList() {
             .map((v, i) => (
               <tr
                 key={v.base + i}
-                onClick={() => handleRowClick(v.base)}
-                onContextMenu={(event) => handleRowRightClick(event, v.base)}
-                className={`cursor-pointer transition-colors ${
+                className={`group transition-colors ${
                   isForgotten(v.base)
                     ? "bg-red-200 hover:bg-red-300"
                     : isSelected(v.base)
                       ? "bg-blue-200 hover:bg-blue-300"
-                      : "hover:bg-gray-50"
+                      : "hover:bg-slate-50"
                 }`}
               >
                 <td className="border p-2">
                   <div className="flex items-center gap-2">
                     <span>{v.base}</span>
                     <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleSpeak(v.base);
-                      }}
+                      onClick={() => handleSpeak(v.base)}
                       className="text-xl hover:scale-110 transition-transform"
                       title="تلفظ کنید"
                     >
@@ -214,10 +200,7 @@ export default function IrregularVerbList() {
                   <div className="flex items-center gap-2">
                     <span>{v.past}</span>
                     <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleSpeak(v.past);
-                      }}
+                      onClick={() => handleSpeak(v.past)}
                       className="text-xl hover:scale-110 transition-transform"
                       title="تلفظ کنید"
                     >
@@ -229,14 +212,53 @@ export default function IrregularVerbList() {
                   <div className="flex items-center gap-2">
                     <span>{v.pastParticiple}</span>
                     <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleSpeak(v.pastParticiple);
-                      }}
+                      onClick={() => handleSpeak(v.pastParticiple)}
                       className="text-xl hover:scale-110 transition-transform"
                       title="تلفظ کنید"
                     >
                       🔊
+                    </button>
+                  </div>
+                </td>
+                <td className="border p-2">
+                  <div
+                    className={`flex items-center justify-center gap-2 transition-opacity ${
+                      isSelected(v.base) || isForgotten(v.base)
+                        ? "opacity-100"
+                        : "opacity-0 group-hover:opacity-100"
+                    }`}
+                  >
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setVerbStatus(
+                          v.base,
+                          isSelected(v.base) ? "none" : "selected",
+                        )
+                      }
+                      className={`px-3 py-1 rounded-md text-xs font-semibold transition-colors ${
+                        isSelected(v.base)
+                          ? "bg-blue-600 text-white"
+                          : "bg-blue-100 text-blue-800 hover:bg-blue-200"
+                      }`}
+                    >
+                      بلدم
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setVerbStatus(
+                          v.base,
+                          isForgotten(v.base) ? "none" : "forgotten",
+                        )
+                      }
+                      className={`px-3 py-1 rounded-md text-xs font-semibold transition-colors ${
+                        isForgotten(v.base)
+                          ? "bg-red-600 text-white"
+                          : "bg-red-100 text-red-800 hover:bg-red-200"
+                      }`}
+                    >
+                      بلد نیستم
                     </button>
                   </div>
                 </td>
