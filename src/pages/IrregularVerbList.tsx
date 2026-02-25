@@ -8,6 +8,10 @@ export default function IrregularVerbList() {
   const [selectedVerbs, setSelectedVerbs] = useState<string[]>([]);
   const [forgottenVerbs, setForgottenVerbs] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
+  // controls which subset of verbs is shown: all / only selected / only forgotten
+  const [filterMode, setFilterMode] = useState<
+    "all" | "selected" | "forgotten"
+  >("all");
 
   // Ø¨Ø§Ø±Ú¯Ø°Ø§Ø±ÛŒ Ø¯Ø§Ø¯Ù‡â€ŒÙ‡Ø§ÛŒ Ø°Ø®ÛŒØ±Ù‡ Ø´Ø¯Ù‡ Ù‡Ù†Ú¯Ø§Ù… Ø¨Ø§Ø±Ú¯ÛŒØ±ÛŒ ØµÙØ­Ù‡
   useEffect(() => {
@@ -92,10 +96,32 @@ export default function IrregularVerbList() {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Irregular Verbs List</h1>
         <div className="flex items-center gap-3">
-          <span className="px-3 py-1 rounded bg-blue-100 text-blue-800 text-sm font-medium">
+          <span
+            role="button"
+            onClick={() =>
+              setFilterMode((f) => (f === "selected" ? "all" : "selected"))
+            }
+            className={`px-3 py-1 rounded text-sm font-medium cursor-pointer transition-colors ${
+              filterMode === "selected"
+                ? "bg-blue-500 text-white"
+                : "bg-blue-100 text-blue-800 hover:bg-blue-200"
+            }`}
+            title="نمایش فقط انتخاب‌شده‌ها"
+          >
             آبی: {selectedVerbs.length}
           </span>
-          <span className="px-3 py-1 rounded bg-red-100 text-red-800 text-sm font-medium">
+          <span
+            role="button"
+            onClick={() =>
+              setFilterMode((f) => (f === "forgotten" ? "all" : "forgotten"))
+            }
+            className={`px-3 py-1 rounded text-sm font-medium cursor-pointer transition-colors ${
+              filterMode === "forgotten"
+                ? "bg-red-500 text-white"
+                : "bg-red-100 text-red-800 hover:bg-red-200"
+            }`}
+            title="نمایش فقط فراموش‌شده‌ها"
+          >
             قرمز: {forgottenVerbs.length}
           </span>
           {(selectedVerbs.length > 0 || forgottenVerbs.length > 0) && (
@@ -141,14 +167,21 @@ export default function IrregularVerbList() {
         <tbody>
           {[...IRREGULAR_VERBS]
             .sort((a, b) => (b.isPopular ? 1 : 0) - (a.isPopular ? 1 : 0))
-            .filter(
-              (v) =>
+            .filter((v) => {
+              // apply search term
+              const matchesSearch =
                 v.base.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 v.past.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 v.pastParticiple
                   .toLowerCase()
-                  .includes(searchTerm.toLowerCase()),
-            )
+                  .includes(searchTerm.toLowerCase());
+              if (!matchesSearch) return false;
+
+              // apply filter badge state
+              if (filterMode === "selected") return isSelected(v.base);
+              if (filterMode === "forgotten") return isForgotten(v.base);
+              return true;
+            })
             .map((v, i) => (
               <tr
                 key={v.base + i}
@@ -214,4 +247,3 @@ export default function IrregularVerbList() {
     </div>
   );
 }
-
