@@ -69,10 +69,17 @@ Or click **"504 Words"** in the navigation menu.
 ## 🔧 Customization
 
 ### Change Daily Word Count
-Edit `src/pages/Word504Page.tsx`:
-```typescript
-const words = getDailyWords(10); // Changed from 5 to 10
+The number of daily words is controlled by an environment variable.  Add
+or adjust the value in a `.env`/`.env.local` file at the project root and
+restart the dev server:
+
+```dotenv
+REACT_APP_WORD504_DAILY_WORD_COUNT=10
 ```
+
+(If you prefer, you can still override the count directly by modifying
+`getDailyWords` in code, but environment variables are easier for
+configuration.)
 
 ### Filter by Difficulty
 Edit `src/components/Word504/Word504LearnMode.tsx`:
